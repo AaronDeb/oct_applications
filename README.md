@@ -1,7 +1,6 @@
 <div align="center">
-  <img src="<div align="center">
   <img src="https://raw.githubusercontent.com/hudson-and-thames/mlfinlab/master/docs/source/logo/Hudson%20%26%20Thames_verticalblack.png" height="300"><br>
-</div>
+</div>                                                                                                                                               
 
 # Skill Set Challenge!
 [Hudson & Thames](https://hudsonthames.org/) has provided the following skillset challenge to allow potential researchers to gauge if they have the required skills to take part in the apprenticeship program. 
