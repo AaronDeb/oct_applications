@@ -9,6 +9,11 @@
 The following assignment is an opportunity for you to highlight your skillset and show us what you are made of! It tests your ability to implement academic research for the broader quantitative finance community, and to do it in style!
 
 ### Briefing
+
+<div align="center">
+  <img src="https://hudsonthames.org/wp-content/uploads/2020/09/Pairs-Selection-1.jpg" height="300"><br>
+</div>  
+
 Read the following [paper](http://premio-vidigal.inesc.pt/pdf/SimaoSarmentoMSc-resumo.pdf).
 
 In a Jupyter Notebook (python):
@@ -21,10 +26,6 @@ In a Jupyter Notebook (python):
 1. Add an introduction, body, and conclusion showcasing your new implementation. (Use the correct style headers)
 1. Make a Pull Request to this repo so that we can evaluate your work. (Create a new folder with your name)
 1. Bonus points if you add unit tests (in a separate .py file).
-
-<div align="center">
-  <img src="https://hudsonthames.org/wp-content/uploads/2020/09/Pairs-Selection-1.jpg" height="300"><br>
-</div>  
 
 
 ### Notes
