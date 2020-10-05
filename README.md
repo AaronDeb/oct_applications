@@ -22,6 +22,11 @@ In a Jupyter Notebook (python):
 1. Make a Pull Request to this repo so that we can evaluate your work. (Create a new folder with your name)
 1. Bonus points if you add unit tests (in a separate .py file).
 
+<div align="center">
+  <img src="https://hudsonthames.org/wp-content/uploads/2020/09/Pairs-Selection-1.jpg" height="300"><br>
+</div>  
+
+
 ### Notes
 * Your code for the implementation should be contained in a .py file that you import into your notebook. Please don't have large chunks of code in your notebook.
 * Your function must take in a pandas DataFrame, not a file directory.
