@@ -14,7 +14,9 @@ The following assignment is an opportunity for you to highlight your skillset an
   <img src="https://hudsonthames.org/wp-content/uploads/2020/09/Pairs-Selection-1.jpg" height="300"><br>
 </div>  
 
-Read the following paper: [Enhancing a Pairs Trading strategy with the application of Machine Learning](http://premio-vidigal.inesc.pt/pdf/SimaoSarmentoMSc-resumo.pdf). Note: The following [textbook](https://www.springer.com/gp/book/9783030472504) provides a deeper explanation of the technique.
+Read the following paper: [Enhancing a Pairs Trading strategy with the application of Machine Learning](http://premio-vidigal.inesc.pt/pdf/SimaoSarmentoMSc-resumo.pdf). 
+
+Note: The following [textbook](https://www.springer.com/gp/book/9783030472504) provides a deeper explanation of the technique.
 
 In a Jupyter Notebook (python):
 
