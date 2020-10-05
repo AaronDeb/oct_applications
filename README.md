@@ -14,7 +14,7 @@ The following assignment is an opportunity for you to highlight your skillset an
   <img src="https://hudsonthames.org/wp-content/uploads/2020/09/Pairs-Selection-1.jpg" height="300"><br>
 </div>  
 
-Read the following [paper](http://premio-vidigal.inesc.pt/pdf/SimaoSarmentoMSc-resumo.pdf).
+Read the following paper: [Enhancing a Pairs Trading strategy with the application of Machine Learning](http://premio-vidigal.inesc.pt/pdf/SimaoSarmentoMSc-resumo.pdf).
 
 In a Jupyter Notebook (python):
 
