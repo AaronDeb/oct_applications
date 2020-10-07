@@ -47,7 +47,7 @@ In a Jupyter Notebook (python):
 </div>
 
 ### Day on Day Activity
-* Implement academic research for open-source machine learning in finance.
+* Implement academic research for machine learning in finance.
 * Python
 * Unit tests
 * PEP8
@@ -62,4 +62,4 @@ In a Jupyter Notebook (python):
 * Machine Learning
 * Software engineering
 * Object Orientated Programming
-* Linear Algebra"
+* Linear Algebra
