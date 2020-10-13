@@ -25,24 +25,26 @@ def _outer_ou_loop(prices_df: pd.DataFrame, test_period: str, cross_overs_per_de
 
     for pair in molecule:
 
-        portfolio_df = prices_df.loc[:, [pair[0], pair[1]] ]
+        portfolio_df = prices_df.loc[:, [pair[0], pair[1]]]
         test_df = portfolio_df.last(test_period)
         train_df = portfolio_df.iloc[: -len(test_df), :]
-        
+
         ou = EnhancedOU()
         ou.fit(train_df.values, data_frequency="D", discount_rate=[0.05, 0.05],
-            transaction_cost=[0.02, 0.02])
-        
+               transaction_cost=[0.02, 0.02])
+
         h = ou.actual_halflife()
-        
-        cross_overs_counts = ou.get_mean_crosses_by_timedelta(test_df, test_df.index)
-        cross_overs = True if len(cross_overs_counts[cross_overs_counts['counts'] > cross_overs_per_delta]) > 0 else False
-        
-        del ou 
+
+        cross_overs_counts = ou.get_mean_crosses_by_timedelta(
+            test_df, test_df.index)
+        cross_overs = True if len(
+            cross_overs_counts[cross_overs_counts['counts'] > cross_overs_per_delta]) > 0 else False
+
+        del ou
         ou_results.append([h, cross_overs])
 
-
     return pd.DataFrame(ou_results, index=molecule, columns=['hl', 'crossovers'])
+
 
 def _outer_ou_loop_light(prices_df: pd.DataFrame, test_period: str, cross_overs_per_delta: int, molecule: list) -> pd.DataFrame:
     """
@@ -62,9 +64,9 @@ def _outer_ou_loop_light(prices_df: pd.DataFrame, test_period: str, cross_overs_
     for pair in molecule:
 
         asset_one = prices_df.loc[:, pair[0]]
-        asset_two = prices_df.loc[:, pair[1]] 
-        
-        spread = pd.Series( data=(asset_one / asset_two) )
+        asset_two = prices_df.loc[:, pair[1]]
+
+        spread = pd.Series(data=(asset_one / asset_two))
 
         if len(spread.shape) > 1:
             spread = pd.Series(np.squeeze(spread.values))
@@ -77,33 +79,33 @@ def _outer_ou_loop_light(prices_df: pd.DataFrame, test_period: str, cross_overs_
         model = sm.OLS(delta_y_t, lagged_spread_c)
         res = model.fit()
 
-        # Note that when mean reversion is expected, λ / SE has a negative value. 
+        # Note that when mean reversion is expected, λ / SE has a negative value.
         # res.params[0] / res.bse[0]
 
-        # This result implies that the expected duration of mean reversion λ is 
+        # This result implies that the expected duration of mean reversion λ is
         # inversely proportional to the absolute value of λ
 
         h = np.log(2) / abs(res.params[0])
-        
+
         # split the spread in two; the train_df is going to be used to get the long term mean
         # and test_df is going to be used to get the number of mean cross overs
         test_df = spread.last(test_period)
         train_df = spread.iloc[: -len(test_df)]
-        
+
         long_term_mean = np.mean(train_df)
         centered_series = test_df - long_term_mean
-        
+
         cross_over_indices = np.where(np.diff(np.sign(centered_series)))[0]
-    
+
         cross_overs_dates = prices_df.index[cross_over_indices]
-        
+
         cross_overs_counts = cross_overs_dates.to_frame().resample('Y').count()
         cross_overs_counts.columns = ['counts']
-        
-        cross_overs = True if len(cross_overs_counts[cross_overs_counts['counts'] > cross_overs_per_delta]) > 0 else False
-        
-        ou_results.append([h, cross_overs])
 
+        cross_overs = True if len(
+            cross_overs_counts[cross_overs_counts['counts'] > cross_overs_per_delta]) > 0 else False
+
+        ou_results.append([h, cross_overs])
 
     return pd.DataFrame(ou_results, index=molecule, columns=['hl', 'crossovers'])
 
@@ -141,7 +143,7 @@ def _outer_cointegration_loop(prices_df: pd.DataFrame, molecule: list) -> pd.Dat
     :param molecule: (list) Indices of pairs
     :return: (pd.DataFrame) Cointegration statistics
     """
-    
+
     cointegration_results = []
 
     for pair in molecule:
@@ -152,7 +154,6 @@ def _outer_cointegration_loop(prices_df: pd.DataFrame, molecule: list) -> pd.Dat
 
 
 def run_cointegration_tests(prices_df: pd.DataFrame, combinations: list, num_threads: int = 8, verbose: bool = True) -> pd.DataFrame:
-    
     """
     This function is the multi threading wrapper that supplies _outer_cointegration_loop
 

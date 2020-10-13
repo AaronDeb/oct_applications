@@ -4,11 +4,10 @@ from mlfinlab.optimal_mean_reversion import OrnsteinUhlenbeck
 
 
 class EnhancedOU(OrnsteinUhlenbeck):
-    
+
     def __init__(self):
         super().__init__()
-    
-    
+
     def actual_halflife(self) -> float:
         """
         Returns the half-life of the fitted OU process taking into consideration the specified
@@ -17,7 +16,7 @@ class EnhancedOU(OrnsteinUhlenbeck):
         :return: (float) Half-life of the fitted OU process
         """
         return self.half_life() / self.delta_t
-    
+
     def get_mean_crosses_by_timedelta(self, data, data_index: pd.Index, time_delta: str = 'Y') -> pd.DataFrame:
         """
         Returns a DataFrame with counts aggregated by the time_delta specified.
@@ -38,18 +37,19 @@ class EnhancedOU(OrnsteinUhlenbeck):
             else:
                 data = data.transpose()
             # Creating a portfolio with previously found optimal ratio
-            portfolio = self.portfolio_from_prices(prices=data, b_variable=self.B_value)
+            portfolio = self.portfolio_from_prices(
+                prices=data, b_variable=self.B_value)
         else:
             raise Exception("The number of dimensions for input data is incorrect. "
                             "Please provide a 1 or 2-dimensional array or dataframe.")
-            
+
         centered_series = portfolio - self.theta
-     
+
         cross_over_indices = np.where(np.diff(np.sign(centered_series)))[0]
-    
+
         cross_overs_dates = data_index[cross_over_indices]
-        
+
         cross_overs_by_delta = cross_overs_dates.to_frame().resample(time_delta).count()
         cross_overs_by_delta.columns = ['counts']
-        
+
         return cross_overs_by_delta

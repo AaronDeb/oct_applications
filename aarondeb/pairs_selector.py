@@ -28,7 +28,7 @@ class PairsSelector():
         Constructor
 
         Sets up the price series needed for the next step
-        
+
         :param universe: (pd.DataFrame): Asset prices universe
         """
 
@@ -48,7 +48,7 @@ class PairsSelector():
                 "Please input a valid price series before running this method")
 
         # cleaning
-        returns_df = (self.prices_df - self.prices_df.shift(1)) 
+        returns_df = (self.prices_df - self.prices_df.shift(1))
         returns_df = returns_df / self.prices_df.shift(1)
         returns_df.replace([np.inf, -np.inf], np.nan, inplace=True)
         returns_df.ffill(inplace=True)
@@ -92,15 +92,15 @@ class PairsSelector():
         """
         Plots the clusters found on a scatter plot.
         """
-        
+
         if self.feature_vector is None:
             raise Exception("The needed feature vector has not been computed yet",
                             "Please run dimensionality_reduction() before this method")
-        
+
         if self.clust is None:
             raise Exception("The needed clusters have not been computed yet",
                             "Please run cluster() before this method")
-        
+
         space = np.arange(len(self.feature_vector))
         reachability = self.clust.reachability_[self.clust.ordering_]
         labels = self.clust.labels_[self.clust.ordering_]
@@ -125,7 +125,7 @@ class PairsSelector():
         plt.tight_layout()
         plt.show()
 
-    def criterion_selector(self, pvalue_threshold: int = 0.05, hurst_exp_threshold: int = 0.5, min_crossover_threshold_per_year : int = 12) -> list:
+    def criterion_selector(self, pvalue_threshold: int = 0.05, hurst_exp_threshold: int = 0.5, min_crossover_threshold_per_year: int = 12) -> list:
         """
         Third step of the framework; The clusters found in step two are used to generate a list of possible pairwise 
         combinations. The combinations generated are then checked to see if they comply with the criteria supplied in the
@@ -165,7 +165,7 @@ class PairsSelector():
 
         cointegration_results = stat_arb_utils.run_cointegration_tests(
             self.prices_df, cluster_x_cointegration_combinations)
-        
+
         passing_pairs = cointegration_results.loc[cointegration_results['pvalue']
                                                   <= pvalue_threshold]
 
@@ -197,13 +197,14 @@ class PairsSelector():
         final_pairs = []
 
         if len(hurst_pass_pairs) != 0:
-            ou_results = stat_arb_utils.run_ou_tests(self.prices_df, hurst_pass_pairs, test_period='2Y', cross_overs_per_delta=min_crossover_threshold_per_year)
+            ou_results = stat_arb_utils.run_ou_tests(
+                self.prices_df, hurst_pass_pairs, test_period='2Y', cross_overs_per_delta=min_crossover_threshold_per_year)
             final_selection = ou_results[1 < ou_results['hl']]
             final_selection = final_selection[ou_results['hl'] < 365]
             hl_pass_pairs = final_selection.index.tolist()
-            
+
             final_selection = final_selection[ou_results['crossovers'] == True]
-            
+
             final_pairs = final_selection.index.tolist()
 
         self.hl_pass_pairs = hl_pass_pairs
@@ -215,7 +216,7 @@ class PairsSelector():
         """
         Plots the final selection of pairs.
         """
-        
+
         if self.final_pairs is None:
             raise Exception("The needed pairs have not been computed yet",
                             "Please run criterion_selector() before this method")
@@ -240,14 +241,14 @@ class PairsSelector():
 
         :return: (pd.DataFrame) Dataframe of summary statistics.
         """
-        
-        no_clusters = len(list(set(self.clust.labels_))) - 1 
+
+        no_clusters = len(list(set(self.clust.labels_))) - 1
         no_paircomb = len(self.cluster_pairs_combinations)
         no_hurstpair = len(self.hurst_pass_pairs)
         no_hlpair = len(self.hl_pass_pairs)
-        
+
         info = []
-       
+
         info.append(("No. of Clusters", no_clusters))
         info.append(("Total Pair Combinations", no_paircomb))
         info.append(("Pairs passing Coint Test", len(self.coint_pass_pairs)))
