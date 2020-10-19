@@ -1,5 +1,3 @@
-import stat_arb_utils
-
 import pandas as pd
 import numpy as np
 import math
@@ -15,10 +13,14 @@ import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
+import stat_arb_utils
+
 
 class PairsSelector():
     """
-    Implementation of the Proposed Pairs Selection Framework
+    Implementation of the Proposed Pairs Selection Framework in the following paper. The
+    method consists of three parts; dimensionality reduction, clustering of features and
+    finally the selection of pairs with the use of a set of heuristics.    
 
     http://premio-vidigal.inesc.pt/pdf/SimaoSarmentoMSc-resumo.pdf
     """
@@ -125,7 +127,103 @@ class PairsSelector():
         plt.tight_layout()
         plt.show()
 
-    def criterion_selector(self, pvalue_threshold: int = 0.05, hurst_exp_threshold: int = 0.5, min_crossover_threshold_per_year: int = 12) -> list:
+    def _generate_pairwise_combinations(self) -> list:
+        """
+        This method will loop through all generated clusters (except -1) and generate 
+        pairwise combinations of the assets in each cluster.
+
+        :return pair_combinations: (list) : list of asset name pairs
+        """
+        c_labels = np.unique(self.clust.labels_[self.clust.labels_ != -1])
+
+        if len(c_labels) == 0:
+            raise Exception("No clusters have been found")
+
+        pair_combinations = []
+
+        for c in c_labels:
+            cluster_x = self.feature_vector[self.clust.labels_ == c].index
+            cluster_x = cluster_x.tolist()
+
+            for combination in list(itertools.combinations(cluster_x, 2)):
+                pair_combinations.append(combination)
+
+        return pair_combinations
+
+    def _hurst_criterion(self, pairs: list, hurst_exp_threshold: int = 0.5) -> tuple:
+        """
+        This method will go through all the pairs given, calculate the needed spread and run
+        the hurst exponent test against each one.
+
+        :param pairs: (list) : List of asset name pairs to be analyzed
+        :param hurst_exp_threshold: (int) : max hurst threshold value 
+        :return (tuple) :  
+            spreads_df: (pd.DataFrame) : Hedge ratio adjusted spreads DataFrame
+            hurst_pass_pairs: (list) : tuple list of pairs that passed the hurst check
+        """
+
+        hurst_pass_pairs = []
+        spreads_lst = []
+        spreads_cols = []
+
+        if len(pairs) != 0:
+            for idx, ep in pairs.iterrows():
+                asset_one = self.prices_df.loc[:, idx[1]].values
+                asset_two = self.prices_df.loc[:, idx[0]].values
+
+                spread_ts = (asset_one - asset_two*ep['hedge_ratio'])
+                hurst_exp = self.hurst(spread_ts)
+
+                if hurst_exp < hurst_exp_threshold:
+                    hurst_pass_pairs.append(idx)
+                    spreads_lst.append(spread_ts)
+                    spreads_cols.append(str(idx))
+        else:
+            raise Exception("No pairs have been found")
+
+        spreads_df = pd.DataFrame(data=spreads_lst).T
+        spreads_df.columns = spreads_cols
+        spreads_df.index = pd.to_datetime(self.prices_df.index)
+
+        return spreads_df, hurst_pass_pairs
+
+    def _final_criterions(self, spreads_df: pd.DataFrame, pairs: list, min_crossover_threshold_per_year: int = 12) -> tuple:
+        """
+        This method consists of the final two criterions checks in the third stage of the proposed
+        framework which involves; the calculation and check, of the half life of the given pair spread 
+        and the amount of mean crossovers throughout a set period, in this case in a year.  
+
+        :param spreads_df: (pd.DataFrame) : Hedge ratio adjusted spreads DataFrame
+        :param pairs: (list) : List of asset name pairs to be analyzed
+        :param min_crossover_threshold_per_year: (int) : minimum amount of mean crossovers per year
+        :return (tuple) :  
+            hl_pass_pairs: (list) : tuple list of final pairs
+            final_pairs: (list) : tuple list of final pairs
+        """
+
+        hl_pass_pairs = []
+        final_pairs = []
+
+        if len(pairs) != 0:
+            ou_results = stat_arb_utils.run_ou_tests(
+                spreads_df, pairs, test_period='2Y', cross_overs_per_delta=min_crossover_threshold_per_year)
+
+            final_selection = ou_results[1 < ou_results['hl']]
+
+            final_selection = final_selection[ou_results['hl'] < 365]
+
+            hl_pass_pairs = final_selection.index.tolist()
+
+            final_selection = final_selection[ou_results['crossovers'] == True]
+
+            final_pairs = final_selection.index.tolist()
+
+        else:
+            raise Exception("No pairs have been found")
+
+        return hl_pass_pairs, final_pairs
+
+    def criterion_selector(self, pvalue_threshold: int = 0.01, hurst_exp_threshold: int = 0.5, min_crossover_threshold_per_year: int = 12) -> list:
         """
         Third step of the framework; The clusters found in step two are used to generate a list of possible pairwise 
         combinations. The combinations generated are then checked to see if they comply with the criteria supplied in the
@@ -142,26 +240,12 @@ class PairsSelector():
             raise Exception("The needed clusters have not been computed yet",
                             "Please run cluster() before this method")
 
-        # generate needed pairwise combinations and remove
-        # unneccessary duplicates
+        # Generate needed pairwise combinations and remove unneccessary duplicates.
 
-        c_labels = np.unique(self.clust.labels_[self.clust.labels_ != -1])
-
-        if len(c_labels) == 0:
-            raise Exception("No clusters have been found")
-
-        cluster_x_cointegration_combinations = []
-
-        for c in c_labels:
-            cluster_x = self.feature_vector[self.clust.labels_ == c].index
-            cluster_x = cluster_x.tolist()
-
-            for combination in list(itertools.combinations(cluster_x, 2)):
-                cluster_x_cointegration_combinations.append(combination)
-
+        cluster_x_cointegration_combinations = self._generate_pairwise_combinations()
         self.cluster_pairs_combinations = cluster_x_cointegration_combinations
 
-        # Selection Criterion One: First, it is imposed that pairs are cointegrated, using a p-value of 1%
+        # Selection Criterion One: First, it is imposed that pairs are cointegrated, using a p-value of 1%.
 
         cointegration_results = stat_arb_utils.run_cointegration_tests(
             self.prices_df, cluster_x_cointegration_combinations)
@@ -171,43 +255,24 @@ class PairsSelector():
 
         self.coint_pass_pairs = passing_pairs
 
-        # Selection Criterion Two: Then, the spread’s Hurst exponent, represented by H should be smaller than 0.5
+        # Selection Criterion Two: Then, the spread’s Hurst exponent, represented by H should be smaller than 0.5.
 
-        hurst_pass_pairs = []
+        spreads_df, hurst_pass_pairs = self._hurst_criterion(
+            passing_pairs, hurst_exp_threshold)
 
-        if len(passing_pairs) != 0:
-
-            for ep in passing_pairs.index:
-                asset_one = self.prices_df.loc[:, ep[0]].values
-                asset_two = self.prices_df.loc[:, ep[1]].values
-
-                spread_ts = np.log(asset_one / asset_two)
-                hurst_exp = self.hurst(spread_ts)
-
-                if hurst_exp < hurst_exp_threshold:
-                    hurst_pass_pairs.append(ep)
+        self.spreads_df = spreads_df
 
         self.hurst_pass_pairs = hurst_pass_pairs
 
         # Selection Criterion Three & Four: Additionally, the half-life period, represented by hl, should
         # lay between one day and one year. Finally, it is imposed that the spread crosses a mean at least
-        # 12 times per year,
+        # 12 times per year.
 
-        hl_pass_pairs = []
-        final_pairs = []
-
-        if len(hurst_pass_pairs) != 0:
-            ou_results = stat_arb_utils.run_ou_tests(
-                self.prices_df, hurst_pass_pairs, test_period='2Y', cross_overs_per_delta=min_crossover_threshold_per_year)
-            final_selection = ou_results[1 < ou_results['hl']]
-            final_selection = final_selection[ou_results['hl'] < 365]
-            hl_pass_pairs = final_selection.index.tolist()
-
-            final_selection = final_selection[ou_results['crossovers'] == True]
-
-            final_pairs = final_selection.index.tolist()
+        hl_pass_pairs, final_pairs = self._final_criterions(
+            spreads_df, hurst_pass_pairs, min_crossover_threshold_per_year)
 
         self.hl_pass_pairs = hl_pass_pairs
+
         self.final_pairs = final_pairs
 
         return final_pairs
@@ -227,8 +292,11 @@ class PairsSelector():
                                 figsize=(15, 3*len(self.final_pairs)))
 
         for i, ep in enumerate(self.final_pairs):
-            axs[i].plot(self.prices_df.loc[:, ep[0]].values)
-            axs[i].plot(self.prices_df.loc[:, ep[1]].values)
+            rets_asset_one = np.log(self.prices_df.loc[:, ep[0]]).diff()
+            rets_asset_two = np.log(self.prices_df.loc[:, ep[1]]).diff()
+
+            axs[i].plot(rets_asset_one.cumsum())
+            axs[i].plot(rets_asset_two.cumsum())
             axs[i].legend([ep[0], ep[1]])
 
     def print_info(self) -> pd.DataFrame:
